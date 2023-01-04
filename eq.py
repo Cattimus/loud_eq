@@ -2,6 +2,9 @@ import wave
 import struct
 import math
 
+#TODO - implement proof of concept for upward and downward compressors
+#TODO - clean up code and abstract things into functions and/or classes
+
 #constant values
 sample_range = 2**15
 
@@ -41,8 +44,6 @@ infile.close()
 
 #get amplitude of window at the index
 def get_average(index):
-	global window_size_frames
-	global samples
 	
 	l_total = 0
 	r_total = 0
