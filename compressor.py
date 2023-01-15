@@ -8,20 +8,12 @@ class Compressor:
 	#we will be checking that every wav file is signed 16 bit PCM
 	__sample_range = 2**15
 
-	#any value below this will be increased by the upward compressor(db)
-	up_threshold = -45
-	__up_threshold_amp = 0
-
 	#any value above this will be decreased by the downward compressor(db)
-	down_threshold = -25
-	__down_threshold_amp = 0
+	threshold = -25
+	__threshold_amp = 0
 
 	#how aggressive do we want the compressor to be
-	ratio = 3
-
-	#any value below this will be ignored by the compressor(db)
-	noise_floor = -60
-	__noise_floor_amp = 0
+	ratio = 4
 
 	#attack and release params
 	attack_time_ms = 100
@@ -40,7 +32,7 @@ class Compressor:
 
 	#get the average amplitude of a section of samples
 	@staticmethod
-	def __get_amp(index, buffer, length):
+	def __get_amp(index: int, buffer: bytes, length: int):
 		l_total = 0
 		r_total = 0
 		for i in range(index, index + (length * 4), 4):
@@ -61,7 +53,7 @@ class Compressor:
 
 	#find the peak value of a section of samples
 	@staticmethod
-	def __get_peak(index, buffer, length):
+	def __get_peak(index: int, buffer: bytes, length: int):
 	
 		peak_l = 0
 		peak_r = 0
@@ -97,70 +89,32 @@ class Compressor:
 		inf.close()
 
 		#initialize amp values
-		self.__up_threshold_amp = self.__db_to_amp(self.up_threshold)
-		self.__down_threshold_amp = self.__db_to_amp(self.down_threshold)
-		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
+		self.__threshold_amp = self.__db_to_amp(self.threshold)
 
 		#initialize sample values
 		self.__attack_time_samples = int((sample_rate / 1000) * self.attack_time_ms)
 		self.__release_time_samples = int((sample_rate / 1000) * self.release_time_ms)
 
-		compress_down = False
-		down_timer = 1
+		#50ms window size
+		window_size = int(sample_rate * (50 / 1000))
 
-		compress_up = False
-		up_timer = 1
+		#attack is the period of time to lower the volume
+		#release is the period of time to bring the volume back up to normal
+		#attack and release will be combined into one calculation to determine the gain to be applied
+		#this gain will fluctuate over windows dependent upon if the window is above or below the threshold
 		
 		#iterate through the samples by byte
-		for i in range(0, len(samples), 4):
+		for i in range(0, len(samples), 4 * window_size):
 
-			#get current sample(mix of left and right)
-			data = struct.unpack_from("<hh", samples, offset=i)
+			#get current sample amplitude
+			data = self.__get_amp(i, samples, window_size)
 
-			#get the loudest of the two channels
-			sample = 0
-			if(abs(data[0]) > abs(data[1])):
-				sample = abs(data[0])
-			else:
-				sample = abs(data[1])
+			#get the highest value of the two values
+			sample = max(data[0], data[1])
 			
-			#if the volume of both channels exceeds the threshold, start compressing for the window of time
-			if(sample > self.__down_threshold_amp):
-				compress_down = True
-			else:
-				compress_down = False
-				down_timer = 1
-
-			if(sample < self.__up_threshold_amp and sample > self.__noise_floor_amp):
-				compress_up = True
-			else:
-				compress_up = False
-				up_timer = 1
-
-			#downward (lower) compression
-			if(compress_down):
-
-				#caluclate how much to adjust data
-				above = sample - self.__down_threshold_amp
-				attack_percent = 1 + (self.ratio * (down_timer / self.__attack_time_samples))
-				adjustment = (self.__down_threshold_amp + (above / attack_percent)) / sample
-				l = int(data[0] * adjustment)
-				r = int(data[1] * adjustment)
-
-				#write back to buffer
-				struct.pack_into("<hh", samples, i, l, r)
+			#our sample meets the criteria for volume lowering
+			if(sample >= self.__threshold_amp):
 				
-				#increment value to calculate reduction
-				if(down_timer < self.__attack_time_samples):
-					down_timer += 1
-
-				continue
-
-			#upward (higher) compression
-			elif(compress_up):
-				#calculate how much to increase the volume by
-				#reduce both channels by the same amount
-				#apply to output buffer
 				continue
 		
 		outf = wave.open(out_file, "wb")
