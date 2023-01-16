@@ -50,7 +50,8 @@ class Compressor:
 		#read all samples into a buffer
 		dt = np.dtype(np.int16)
 		dt = dt.newbyteorder("<")
-		samples = np.frombuffer(inf.readframes(wavparams.nframes), dtype=dt)
+		samples = np.array(np.frombuffer(inf.readframes(wavparams.nframes), dtype=dt))
+		samples.setflags(write=True)
 		sample_rate = wavparams.framerate
 		inf.close()
 
@@ -71,13 +72,18 @@ class Compressor:
 		
 		#iterate through the samples by byte
 		for i in range(0, len(samples), window_size):
+			window = samples[i:i+window_size]
 
 			#calculate amplitude of a sample (RMS)
-			data = np.sqrt(np.mean(samples[i:i+window_size].astype(np.int32)**2))
+			data = np.sqrt(np.mean(window.astype(np.int32)**2))
+
+			#limiter example
+			adjust = self.__threshold_amp / data
 			
 			#our sample meets the criteria for volume lowering
-			if(data >= self.__threshold_amp):
-				
+			if(data > self.__threshold_amp):
+				np.multiply(window, adjust, out=window, casting="unsafe")
+			else:
 				continue
 		
 		outf = wave.open(out_file, "wb")
