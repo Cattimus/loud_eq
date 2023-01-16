@@ -1,6 +1,7 @@
 import wave
 import struct
 import math
+import numpy as np
 
 #compress the dynamic range of a wav file (as a proof of concept)
 class Compressor:
@@ -11,6 +12,10 @@ class Compressor:
 	#any value above this will be decreased by the downward compressor(db)
 	threshold = -25
 	__threshold_amp = 0
+
+	#what value to normalize the audio to after it has been compressed
+	normalize_db = -6
+	__normalize_amp = 0
 
 	#how aggressive do we want the compressor to be
 	ratio = 4
@@ -30,47 +35,6 @@ class Compressor:
 	def __amp_to_db(self, amp):
 		return 20 * math.log10(amp / self.__sample_range)
 
-	#get the average amplitude of a section of samples
-	@staticmethod
-	def __get_amp(index: int, buffer: bytes, length: int):
-		l_total = 0
-		r_total = 0
-		for i in range(index, index + (length * 4), 4):
-
-			#if we exceed the boundaries of our sample buffer
-			if (i >= len(buffer)):
-				break
-
-			sample = struct.unpack_from("<hh", buffer, offset=i)
-			l_total += sample[0]**2
-			r_total += sample[1]**2
-
-		#calculate RMS of each channel
-		l_rms = math.sqrt(l_total / length)
-		r_rms = math.sqrt(r_total / length)
-
-		return (l_rms, r_rms)
-
-	#find the peak value of a section of samples
-	@staticmethod
-	def __get_peak(index: int, buffer: bytes, length: int):
-	
-		peak_l = 0
-		peak_r = 0
-		for i in range(index, index + (length * 4), 4):
-
-			#if we exceed the boundaries of our sample buffer
-			if (i >= len(buffer)):
-				break
-
-			sample = struct.unpack_from("<hh", buffer, offset=i)
-			if(abs(sample[0]) > peak_l):
-				peak_l = abs(sample[0])
-			if(abs(sample[1]) > peak_r):
-				peak_r = abs(sample[1])
-
-		return (peak_l, peak_r)
-
 	#compress an audio file
 	def compress(self, in_file: str, out_file: str):
 
@@ -84,7 +48,9 @@ class Compressor:
 			return
 
 		#read all samples into a buffer
-		samples = bytearray(inf.readframes(wavparams.nframes))
+		dt = np.dtype(np.int16)
+		dt = dt.newbyteorder("<")
+		samples = np.frombuffer(inf.readframes(wavparams.nframes), dtype=dt)
 		sample_rate = wavparams.framerate
 		inf.close()
 
@@ -104,20 +70,17 @@ class Compressor:
 		#this gain will fluctuate over windows dependent upon if the window is above or below the threshold
 		
 		#iterate through the samples by byte
-		for i in range(0, len(samples), 4 * window_size):
+		for i in range(0, len(samples), window_size):
 
-			#get current sample amplitude
-			data = self.__get_amp(i, samples, window_size)
-
-			#get the highest value of the two values
-			sample = max(data[0], data[1])
+			#calculate amplitude of a sample (RMS)
+			data = np.sqrt(np.mean(samples[i:i+window_size].astype(np.int32)**2))
 			
 			#our sample meets the criteria for volume lowering
-			if(sample >= self.__threshold_amp):
+			if(data >= self.__threshold_amp):
 				
 				continue
 		
 		outf = wave.open(out_file, "wb")
 		outf.setparams(wavparams)
-		outf.writeframes(samples)
+		outf.writeframes(samples.tobytes())
 		outf.close()
