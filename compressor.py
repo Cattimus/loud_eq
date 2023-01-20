@@ -67,14 +67,10 @@ class Compressor:
 		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
-		window_size = int(sample_rate * (50 / 1000))
-		adjustment_max = max(self.attack_time_ms, self.release_time_ms)
-		adjustment_amount = 0
-
-		#this is almost correct but for some reason only works on half of the signal
-
-		attack_val = 1
-		release_val = self.__release_time_samples
+		window_size = int(sample_rate * (50 / 1000) * 2)
+		adjust = 0
+		attack_val = 1 / self.__attack_time_samples
+		release_val = 1 / self.__release_time_samples
 		
 		#iterate through the samples by byte
 		for i in range(0, len(samples), window_size):
@@ -87,36 +83,35 @@ class Compressor:
 			#limited to threshold + ratio
 			above = data - self.__threshold_amp
 			overamp = (above / self.ratio)
+			target_amp = (self.__threshold_amp + overamp)
+			diff = data - target_amp
 			
 			#attack adjustment (lower volume)
 			if(data > self.__threshold_amp):
-				for x in range(0, len(window)):
+				for x in range(0, len(window), 2):
 					
 					#change attack and release values accordingly
-					if(attack_val < self.__attack_time_samples):
-						attack_val += 1
-						release_val -= 1
+					if(adjust < 1):
+						adjust += attack_val
 					
-					#adjust the value if the sample is above the noise floor
-					if(window[x] > self.__noise_floor_amp):
-						adjust = (self.__threshold_amp + (overamp * (attack_val / self.__attack_time_samples))) / data
-						window[x] *= adjust
+					#adjust the value
+					output_adjust = (data - (diff * adjust)) / data
+					window[x] *= output_adjust
+					window[x+1] *= output_adjust
 
 			#release adjustment (raise volume)
 			else:
-				continue
-				for x in range(0, len(window)):
+				diff = target_amp - data
+				for x in range(0, len(window), 2):
 					
 					#change attack and release values accordingly
-					if(release_val < self.__release_time_samples):
-						release_val += 1
-						attack_val -= 1
+					if(adjust > 0):
+						adjust -= release_val
 					
-					#adjust the value if the sample is above the noise floor
-					if(window[x] > self.__noise_floor_amp):
-						#this calculation needs to be adjusted
-						adjust = self.__threshold_amp / data
-						window[x] *= adjust
+					#this calculation needs to be adjusted
+					output_adjust = (data - (diff * adjust)) / data
+					window[x] *= output_adjust
+					window[x+1] *= output_adjust
 		
 		outf = wave.open(out_file, "wb")
 		outf.setparams(wavparams)
