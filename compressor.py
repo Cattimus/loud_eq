@@ -16,6 +16,10 @@ class Compressor:
 	normalize_db = -6
 	__normalize_amp = 0
 
+	#ignore all samples under this value
+	noise_floor = -40
+	__noise_floor_amp = 0
+
 	#how aggressive do we want the compressor to be
 	ratio = 4
 
@@ -60,18 +64,17 @@ class Compressor:
 		#initialize sample values
 		self.__attack_time_samples = int((sample_rate / 1000) * self.attack_time_ms)
 		self.__release_time_samples = int((sample_rate / 1000) * self.release_time_ms)
+		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
 		window_size = int(sample_rate * (50 / 1000))
 		adjustment_max = max(self.attack_time_ms, self.release_time_ms)
 		adjustment_amount = 0
 
-		#attack is the period of time to lower the volume
-		#release is the period of time to bring the volume back up to normal
-		#attack and release will be combined into one calculation to determine the gain to be applied
-		#this gain will fluctuate over windows dependent upon if the window is above or below the threshold
+		#this is almost correct but for some reason only works on half of the signal
 
-
+		attack_val = 1
+		release_val = self.__release_time_samples
 		
 		#iterate through the samples by byte
 		for i in range(0, len(samples), window_size):
@@ -83,13 +86,37 @@ class Compressor:
 			#need to adjust this based on attack and release timings
 			#limited to threshold + ratio
 			above = data - self.__threshold_amp
-			adjust = (self.__threshold_amp + (above / self.ratio)) / data
+			overamp = (above / self.ratio)
 			
-			#our sample meets the criteria for volume lowering
+			#attack adjustment (lower volume)
 			if(data > self.__threshold_amp):
-				np.multiply(window, adjust, out=window, casting="unsafe")
+				for x in range(0, len(window)):
+					
+					#change attack and release values accordingly
+					if(attack_val < self.__attack_time_samples):
+						attack_val += 1
+						release_val -= 1
+					
+					#adjust the value if the sample is above the noise floor
+					if(window[x] > self.__noise_floor_amp):
+						adjust = (self.__threshold_amp + (overamp * (attack_val / self.__attack_time_samples))) / data
+						window[x] *= adjust
+
+			#release adjustment (raise volume)
 			else:
 				continue
+				for x in range(0, len(window)):
+					
+					#change attack and release values accordingly
+					if(release_val < self.__release_time_samples):
+						release_val += 1
+						attack_val -= 1
+					
+					#adjust the value if the sample is above the noise floor
+					if(window[x] > self.__noise_floor_amp):
+						#this calculation needs to be adjusted
+						adjust = self.__threshold_amp / data
+						window[x] *= adjust
 		
 		outf = wave.open(out_file, "wb")
 		outf.setparams(wavparams)
