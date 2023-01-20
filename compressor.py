@@ -1,5 +1,4 @@
 import wave
-import struct
 import math
 import numpy as np
 
@@ -64,11 +63,15 @@ class Compressor:
 
 		#50ms window size
 		window_size = int(sample_rate * (50 / 1000))
+		adjustment_max = max(self.attack_time_ms, self.release_time_ms)
+		adjustment_amount = 0
 
 		#attack is the period of time to lower the volume
 		#release is the period of time to bring the volume back up to normal
 		#attack and release will be combined into one calculation to determine the gain to be applied
 		#this gain will fluctuate over windows dependent upon if the window is above or below the threshold
+
+
 		
 		#iterate through the samples by byte
 		for i in range(0, len(samples), window_size):
@@ -77,8 +80,9 @@ class Compressor:
 			#calculate amplitude of a sample (RMS)
 			data = np.sqrt(np.mean(window.astype(np.int32)**2))
 
-			#limiter example
-			adjust = self.__threshold_amp / data
+			#need to adjust this based on attack and release timings
+			#limited to threshold + ratio
+			adjust = (self.__threshold_amp + (self.__threshold_amp / self.ratio)) / data
 			
 			#our sample meets the criteria for volume lowering
 			if(data > self.__threshold_amp):
