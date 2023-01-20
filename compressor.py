@@ -82,7 +82,8 @@ class Compressor:
 
 			#need to adjust this based on attack and release timings
 			#limited to threshold + ratio
-			adjust = (self.__threshold_amp + (self.__threshold_amp / self.ratio)) / data
+			above = data - self.__threshold_amp
+			adjust = (self.__threshold_amp + (above / self.ratio)) / data
 			
 			#our sample meets the criteria for volume lowering
 			if(data > self.__threshold_amp):
