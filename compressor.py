@@ -68,7 +68,8 @@ class Compressor:
 
 		#50ms window size
 		window_size = int(sample_rate * (50 / 1000) * 2)
-		adjust = 0
+		gain_adjust = 0
+		output_gain = 1
 		attack_step = 1 / self.__attack_time_samples
 		release_step = 1 / self.__release_time_samples
 		
@@ -89,27 +90,30 @@ class Compressor:
 				for x in range(0, len(window), 2):
 					
 					#change attack and release values accordingly
-					if(adjust < 1):
-						adjust += attack_step
+					if(gain_adjust < 1):
+						gain_adjust += attack_step
 					
 					#adjust the value
-					output_adjust = (data - (diff * adjust)) / data
-					window[x] *= output_adjust
-					window[x+1] *= output_adjust
+					output_gain = (data - (diff * gain_adjust)) / data
+					window[x] *= output_gain
+					window[x+1] *= output_gain
 
 			#attack works as expected, release needs to slowly raise the volume back up to 1.0 gain
 			#release adjustment (raise volume)
 			else:
 				for x in range(0, len(window), 2):
+
+					#difference between full gain and current gain
+					diff = 1 - output_gain
 					
 					#change attack and release values accordingly
-					if(adjust > 0):
-						adjust -= release_step
+					if(gain_adjust > 0):
+						gain_adjust -= release_step
 					
-					#this calculation needs to be adjusted
-					output_adjust = data / data
-					window[x] *= output_adjust
-					window[x+1] *= output_adjust
+					#this calculation will go up from output gain to full volume
+					release_output = 1 - (diff * gain_adjust)
+					window[x] *= output_gain
+					window[x+1] *= output_gain
 		
 		outf = wave.open(out_file, "wb")
 		outf.setparams(wavparams)
