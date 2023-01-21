@@ -21,7 +21,7 @@ class Compressor:
 	__noise_floor_amp = 0
 
 	#how aggressive do we want the compressor to be
-	ratio = 4
+	ratio = 10
 
 	#attack and release params
 	attack_time_ms = 100
@@ -67,7 +67,7 @@ class Compressor:
 		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
-		window_size = int(sample_rate * (50 / 1000) * 2)
+		window_size = int(sample_rate * (25 / 1000))
 		gain_adjust = 0
 		output_gain = 1
 		attack_step = 1 / self.__attack_time_samples
@@ -82,12 +82,13 @@ class Compressor:
 			
 			#attack adjustment (lower volume)
 			if(data > self.__threshold_amp):
-				above = data - self.__threshold_amp
-				overamp = (above / self.ratio)
+
+				#TODO - This is not correct. This is being measured in amplitude not in db. The ratio is not being applied properly.
+				overamp = ((data - self.__threshold_amp) / self.ratio)
 				target_amp = (self.__threshold_amp + overamp)
 				diff = data - target_amp
 
-				for x in range(0, len(window), 2):
+				for x in range(0, len(window)):
 					
 					#change attack and release values accordingly
 					if(gain_adjust < 1):
@@ -96,9 +97,7 @@ class Compressor:
 					#adjust the value
 					output_gain = (data - (diff * gain_adjust)) / data
 					window[x] *= output_gain
-					window[x+1] *= output_gain
 
-			#attack works as expected, release needs to slowly raise the volume back up to 1.0 gain
 			#release adjustment (raise volume)
 			else:
 				for x in range(0, len(window), 2):
@@ -112,8 +111,7 @@ class Compressor:
 					
 					#this calculation will go up from output gain to full volume
 					release_output = 1 - (diff * gain_adjust)
-					window[x] *= output_gain
-					window[x+1] *= output_gain
+					window[x] *= release_output
 		
 		outf = wave.open(out_file, "wb")
 		outf.setparams(wavparams)
