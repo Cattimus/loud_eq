@@ -69,8 +69,8 @@ class Compressor:
 		#50ms window size
 		window_size = int(sample_rate * (50 / 1000) * 2)
 		adjust = 0
-		attack_val = 1 / self.__attack_time_samples
-		release_val = 1 / self.__release_time_samples
+		attack_step = 1 / self.__attack_time_samples
+		release_step = 1 / self.__release_time_samples
 		
 		#iterate through the samples by byte
 		for i in range(0, len(samples), window_size):
@@ -78,38 +78,36 @@ class Compressor:
 
 			#calculate amplitude of a sample (RMS)
 			data = np.sqrt(np.mean(window.astype(np.int32)**2))
-
-			#need to adjust this based on attack and release timings
-			#limited to threshold + ratio
-			above = data - self.__threshold_amp
-			overamp = (above / self.ratio)
-			target_amp = (self.__threshold_amp + overamp)
-			diff = data - target_amp
 			
 			#attack adjustment (lower volume)
 			if(data > self.__threshold_amp):
+				above = data - self.__threshold_amp
+				overamp = (above / self.ratio)
+				target_amp = (self.__threshold_amp + overamp)
+				diff = data - target_amp
+
 				for x in range(0, len(window), 2):
 					
 					#change attack and release values accordingly
 					if(adjust < 1):
-						adjust += attack_val
+						adjust += attack_step
 					
 					#adjust the value
 					output_adjust = (data - (diff * adjust)) / data
 					window[x] *= output_adjust
 					window[x+1] *= output_adjust
 
+			#attack works as expected, release needs to slowly raise the volume back up to 1.0 gain
 			#release adjustment (raise volume)
 			else:
-				diff = target_amp - data
 				for x in range(0, len(window), 2):
 					
 					#change attack and release values accordingly
 					if(adjust > 0):
-						adjust -= release_val
+						adjust -= release_step
 					
 					#this calculation needs to be adjusted
-					output_adjust = (data - (diff * adjust)) / data
+					output_adjust = data / data
 					window[x] *= output_adjust
 					window[x+1] *= output_adjust
 		
