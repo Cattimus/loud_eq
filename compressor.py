@@ -9,7 +9,7 @@ class Compressor:
 	__sample_range = 2**15
 
 	#any value above this will be decreased by the downward compressor(db)
-	threshold = -25
+	threshold = -18
 	__threshold_amp = 0
 
 	#what value to normalize the audio to after it has been compressed
@@ -21,14 +21,17 @@ class Compressor:
 	__noise_floor_amp = 0
 
 	#how aggressive do we want the compressor to be
-	ratio = 10
+	ratio = 4
 
 	#attack and release params
-	attack_time_ms = 100
+	attack_time_ms = 20
 	__attack_time_samples = 0
 
-	release_time_ms = 1000
+	release_time_ms = 500
 	__release_time_samples = 0
+
+	#sample window params
+	sample_window_ms = 50
 
 	#convert db to amplitude(16 bit signed)
 	def __db_to_amp(self, db):
@@ -67,7 +70,7 @@ class Compressor:
 		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
-		window_size = int(sample_rate * (25 / 1000))
+		window_size = int(sample_rate * (sample_window_ms / 1000))
 		gain_adjust = 0
 		output_gain = 1
 		attack_step = 1 / self.__attack_time_samples
@@ -82,9 +85,7 @@ class Compressor:
 			
 			#attack adjustment (lower volume)
 			if(data > self.__threshold_amp):
-
-				#TODO - This is not correct. This is being measured in amplitude not in db. The ratio is not being applied properly.
-				overamp = ((data - self.__threshold_amp) / self.ratio)
+				overamp = (data - self.__threshold_amp) / self.ratio
 				target_amp = (self.__threshold_amp + overamp)
 				diff = data - target_amp
 
