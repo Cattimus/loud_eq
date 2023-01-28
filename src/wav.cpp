@@ -23,8 +23,8 @@ Wav::Wav(string filename)
 		return;
 	}
 
-	//skip chunk size for the first chunk, since it does not matter
-	fseek(input, 4, SEEK_CUR);
+	//read file size for later writing (so we don't have to compute it again)
+	fread(&file_size, 4, 1, input);
 
 	//WAVE ID
 	fread(chunk_id, 4, 1, input);
@@ -84,4 +84,43 @@ Wav::Wav(string filename)
 	fclose(input);
 
 	samples = chunk_size / (2 * (bits_per_sample / 8));
+}
+
+//write wave file to new filename
+void Wav::write(string filename)
+{
+	FILE* output = fopen(filename.c_str(), "wb");
+	fwrite("RIFF", 4, 1, output);
+	fwrite(&file_size, 4, 1, output);
+	fwrite("WAVE", 4, 1, output);
+	fwrite("fmt ", 4, 1, output);
+
+	//fmt chunk size
+	uint32_t temp = 16;
+	fwrite(&temp, 4, 1, output);
+
+	fwrite(&format_code, 2, 1, output);
+	fwrite(&channels, 2, 1, output);
+	fwrite(&samples_per_sec, 4, 1, output);
+
+	//bytes_per_sec
+	temp = samples_per_sec * (bits_per_sample / 8) * channels;
+	fwrite(&temp, 4, 1, output);
+
+	fwrite(&block_align, 2, 1, output);
+	fwrite(&bits_per_sample, 2, 1, output);
+	
+	//data chunk
+	uint32_t chunk_size = (bits_per_sample / 8) * channels * samples;
+	fwrite("data", 4, 1, output);
+	fwrite(&chunk_size, 4, 1, output);
+	fwrite(data, 1, chunk_size, output);
+
+	//check if we need a padding byte
+	if(chunk_size % 2 != 0)
+	{
+		temp = 0;
+		fwrite(&temp, 1, 1, output);
+	}
+	fclose(output);
 }

@@ -11,6 +11,9 @@ using namespace std;
 //this program will assume little-endian architecture
 class Wav
 {
+private:
+	uint32_t file_size;
+
 public:
 	uint16_t format_code;
 	uint16_t channels;
@@ -23,4 +26,6 @@ public:
 
 	Wav(string filename);
 	~Wav();
+
+	void write(string filename);
 };

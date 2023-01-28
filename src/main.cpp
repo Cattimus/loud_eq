@@ -11,5 +11,7 @@ int main()
 	cout << wav.samples_per_sec << endl;
 	cout << wav.bits_per_sample << endl;
 	cout << wav.samples << endl;
+
+	wav.write("../output/test.wav");
 	return 0;
 }
