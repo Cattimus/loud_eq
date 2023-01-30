@@ -9,6 +9,13 @@ Wav::~Wav()
 	}
 }
 
+static void exit_gracefully(FILE* to_close, const char* filename)
+{
+	fclose(to_close);
+	printf("ERROR: Wav file %s is not valid.\n", filename);
+	return;
+}
+
 Wav::Wav(string filename)
 {
 	FILE* input = fopen(filename.c_str(), "rb");
@@ -19,8 +26,7 @@ Wav::Wav(string filename)
 	fread(chunk_id, 4, 1, input);
 	if(strncmp(chunk_id, "RIFF", 4) != 0) 
 	{
-		printf("ERROR: Wav file %s is not valid.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	//read file size for later writing (so we don't have to compute it again)
@@ -30,38 +36,33 @@ Wav::Wav(string filename)
 	fread(chunk_id, 4, 1, input);
 	if(strncmp(chunk_id, "WAVE", 4) != 0)
 	{
-		printf("ERROR: Wav file %s is not valid.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	//fmt chunk
 	fread(chunk_id, 4, 1, input);
 	if(strncmp(chunk_id, "fmt ", 4) != 0)
 	{
-		printf("ERROR: Wav file %s is not valid.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	uint32_t chunk_size = 0;
 	fread(&chunk_size, 4, 1, input);
 	if(chunk_size != 16)
 	{
-		printf("ERROR: Wav file %s is not supported.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	fread(&format_code, 2, 1, input);
 	if(format_code != 1)
 	{
-		printf("ERROR: Wav file %s is not supported.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	fread(&channels, 2, 1, input);
 	if(channels != 2)
 	{
-		printf("ERROR: Wav file %s is not supported.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	fread(&samples_per_sec, 4, 1, input);
@@ -73,8 +74,7 @@ Wav::Wav(string filename)
 	fread(chunk_id, 4, 1, input);
 	if(strncmp(chunk_id, "data", 4) != 0)
 	{
-		printf("ERROR: Wav file %s is not supported.\n", filename.c_str());
-		return;
+		exit_gracefully(input, filename.c_str());
 	}
 
 	//read data from file

@@ -70,7 +70,7 @@ class Compressor:
 		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
-		window_size = int(sample_rate * (sample_window_ms / 1000))
+		window_size = int(sample_rate * (self.sample_window_ms / 1000))
 		gain_adjust = 0
 		output_gain = 1
 		attack_step = 1 / self.__attack_time_samples

@@ -3,3 +3,6 @@
 /output
 /__pycache__
 /build
+compile_commands.json
+/prototype/.mypy_cache
+/.clangd
