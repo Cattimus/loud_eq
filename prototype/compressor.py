@@ -6,32 +6,32 @@ import numpy as np
 class Compressor:
 
 	#we will be checking that every wav file is signed 16 bit PCM
-	__sample_range = 2**15
+	__sample_range: int = 2**15
 
 	#any value above this will be decreased by the downward compressor(db)
-	threshold = -18
-	__threshold_amp = 0
+	threshold: float = -18
+	__threshold_amp: int = 0
 
 	#what value to normalize the audio to after it has been compressed
-	normalize_db = -6
-	__normalize_amp = 0
+	normalize_db: float = -6
+	__normalize_amp: int = 0
 
 	#ignore all samples under this value
-	noise_floor = -40
-	__noise_floor_amp = 0
+	noise_floor: float = -40
+	__noise_floor_amp: int = 0
 
 	#how aggressive do we want the compressor to be
-	ratio = 4
+	ratio: float = 4
 
 	#attack and release params
-	attack_time_ms = 20
-	__attack_time_samples = 0
+	attack_time_ms: int = 20
+	__attack_time_samples: int = 0
 
-	release_time_ms = 500
-	__release_time_samples = 0
+	release_time_ms: int = 500
+	__release_time_samples: int = 0
 
 	#sample window params
-	sample_window_ms = 50
+	sample_window_ms: int = 50
 
 	#convert db to amplitude(16 bit signed)
 	def __db_to_amp(self, db):
@@ -65,16 +65,16 @@ class Compressor:
 		self.__threshold_amp = self.__db_to_amp(self.threshold)
 
 		#initialize sample values
-		self.__attack_time_samples = int((sample_rate / 1000) * self.attack_time_ms)
-		self.__release_time_samples = int((sample_rate / 1000) * self.release_time_ms)
+		self.__attack_time_samples = (sample_rate / 1000) * self.attack_time_ms
+		self.__release_time_samples = (sample_rate / 1000) * self.release_time_ms
 		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
-		window_size = int(sample_rate * (self.sample_window_ms / 1000))
-		gain_adjust = 0
-		output_gain = 1
-		attack_step = 1 / self.__attack_time_samples
-		release_step = 1 / self.__release_time_samples
+		window_size: int = sample_rate * (self.sample_window_ms / 1000)
+		gain_adjust: float = 0
+		output_gain: float = 1
+		attack_step: float = 1 / self.__attack_time_samples
+		release_step: float = 1 / self.__release_time_samples
 		
 		#iterate through the samples by byte
 		for i in range(0, len(samples), window_size):
