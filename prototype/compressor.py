@@ -65,12 +65,12 @@ class Compressor:
 		self.__threshold_amp = self.__db_to_amp(self.threshold)
 
 		#initialize sample values
-		self.__attack_time_samples = (sample_rate / 1000) * self.attack_time_ms
-		self.__release_time_samples = (sample_rate / 1000) * self.release_time_ms
+		self.__attack_time_samples = int((sample_rate / 1000) * self.attack_time_ms)
+		self.__release_time_samples = int((sample_rate / 1000) * self.release_time_ms)
 		self.__noise_floor_amp = self.__db_to_amp(self.noise_floor)
 
 		#50ms window size
-		window_size: int = sample_rate * (self.sample_window_ms / 1000)
+		window_size: int = int(sample_rate * (self.sample_window_ms / 1000))
 		gain_adjust: float = 0
 		output_gain: float = 1
 		attack_step: float = 1 / self.__attack_time_samples
