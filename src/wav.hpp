@@ -13,6 +13,7 @@ class Wav
 {
 private:
 	uint32_t file_size;
+	int sample_size;
 
 public:
 	uint16_t format_code;
@@ -28,4 +29,8 @@ public:
 	~Wav();
 
 	void write(string filename);
+
+	//get a window of [size] at [offset]
+	//both measurements are in samples not in bytes
+	void* get_window(size_t offset, size_t size);
 };

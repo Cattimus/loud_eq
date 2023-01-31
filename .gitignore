@@ -1,7 +1,7 @@
 /media
 /.vscode
 /output
-/__pycache__
+/prototype/__pycache__
 /build
 compile_commands.json
 /prototype/.mypy_cache

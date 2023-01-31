@@ -13,5 +13,7 @@ set(SOURCES
   src/compressor.cpp
   src/compressor.hpp)
 
+add_compile_options(-Wall -g)
+
 include_directories(src)
 add_executable(main ${SOURCES})

@@ -9,6 +9,17 @@ Wav::~Wav()
 	}
 }
 
+void* Wav::get_window(size_t offset, size_t size)
+{
+	//sample out of range
+	if((offset + size) >= samples)
+	{
+		return NULL;
+	}
+
+	return data + (offset * sample_size);
+}
+
 static void exit_gracefully(FILE* to_close, const char* filename)
 {
 	fclose(to_close);
@@ -83,7 +94,8 @@ Wav::Wav(string filename)
 	fread(data, 1, chunk_size, input);
 	fclose(input);
 
-	samples = chunk_size / (2 * (bits_per_sample / 8));
+	sample_size = (bits_per_sample / 8);
+	samples = chunk_size / sample_size;
 }
 
 //write wave file to new filename
