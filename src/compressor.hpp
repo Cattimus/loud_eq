@@ -14,6 +14,7 @@ private:
 	double threshold_amp = 0;
 	double normalize_amp = 0;
 	double noise_floor_amp = 0;
+	int sample_window_samples = 0;
 
 	//values that are different for different audio streams
 	int attack_time_samples = 0;
@@ -40,24 +41,24 @@ public:
 	void compress(Wav audio);
 
 	//getters and setters
-	void set_threshold();
+	void set_threshold(double threshold);
 	double get_threshold();
 
-	void set_normalize();
+	void set_normalize(double normalize);
 	double get_normalize();
 
-	void set_noise_floor();
+	void set_noise_floor(double noise_floor);
 	double get_noise_floor();
 
-	void set_ratio();
+	void set_ratio(double ratio);
 	double get_ratio();
 
-	void set_attack_time_ms();
+	void set_attack_time_ms(int attack);
 	int get_attack_time_ms();
 
-	void set_release_time_ms();
+	void set_release_time_ms(int release);
 	int get_release_time_ms();
 
-	void set_sample_window_ms();
+	void set_sample_window_ms(int window);
 	int get_sample_window_ms();
 };
