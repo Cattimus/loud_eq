@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <iostream>
 #include <string>
 using namespace std;
 
@@ -13,7 +14,6 @@ class Wav
 {
 private:
 	uint32_t file_size;
-	int sample_size;
 
 public:
 	uint16_t format_code;
@@ -24,8 +24,11 @@ public:
 	char* data;
 
 	int samples; //total number of samples in file
+	int sample_size;
 
 	Wav(string filename);
+	Wav(const Wav& wav); //copy constructor
+	void operator=(const Wav& wav);
 	~Wav();
 
 	void write(string filename);

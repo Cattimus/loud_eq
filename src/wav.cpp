@@ -20,6 +20,39 @@ void* Wav::get_window(size_t offset, size_t size)
 	return data + (offset * sample_size);
 }
 
+//copy constructor and assignment operator (needs deep copy)
+Wav::Wav(const Wav& wav)
+{
+	*this = wav;
+}
+void Wav::operator=(const Wav& wav)
+{
+	//private
+	file_size = wav.file_size;
+	sample_size = wav.sample_size;
+
+	//public
+	format_code = wav.format_code;
+	channels = wav.channels;
+	samples_per_sec = wav.samples_per_sec;
+	block_align = wav.block_align;
+	bits_per_sample = wav.bits_per_sample;
+
+	samples = wav.samples;
+	sample_size = wav.sample_size;
+
+	//free old memory, if it exists
+	if(data != NULL)
+	{
+		free(data);
+		data = NULL;
+	}
+
+	//deep copy data
+	data = (char*)calloc(samples * sample_size + 1, 1);
+	memcpy(data, wav.data, samples * sample_size);
+}
+
 static void exit_gracefully(FILE* to_close, const char* filename)
 {
 	fclose(to_close);
@@ -90,7 +123,7 @@ Wav::Wav(string filename)
 
 	//read data from file
 	fread(&chunk_size, 4, 1, input);
-	data = (char*)malloc(chunk_size);
+	data = (char*)calloc(chunk_size + 1, 1);
 	fread(data, 1, chunk_size, input);
 	fclose(input);
 
@@ -123,7 +156,7 @@ void Wav::write(string filename)
 	fwrite(&bits_per_sample, 2, 1, output);
 	
 	//data chunk
-	uint32_t chunk_size = (bits_per_sample / 8) * channels * samples;
+	uint32_t chunk_size = sample_size * samples;
 	fwrite("data", 4, 1, output);
 	fwrite(&chunk_size, 4, 1, output);
 	fwrite(data, 1, chunk_size, output);
