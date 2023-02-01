@@ -106,10 +106,14 @@ void Compressor::compress(Wav& wav)
 {
 	//initialize things that need data from the wav file
 	samples_per_sec = wav.samples_per_sec;
-
 	samples_in_window = samples_per_sec * (double)(sample_window / 1000.0);
 	attack_samples = samples_per_sec * (double)(attack_time / 1000.0);
 	release_samples = samples_per_sec * (double)(release_time / 1000.0);
+
+	double gain_adjust = 0;
+	double output_gain = 0;
+	double attack_step = 1 / (double)attack_samples;
+	double release_step = 1 / (double)release_samples;
 
 	//iterate through whole file
 	for(int i = 0; i < wav.samples; i += samples_in_window)
@@ -132,14 +136,47 @@ void Compressor::compress(Wav& wav)
 		}
 
 		//calculate RMS values
-		double RMS_amp = get_RMS(window, len);
-		double RMS_db = amp_to_db(RMS_amp);
+		double RMS = get_RMS(window, len);
 
-		//test values are correct by multiplying by 0.5
-		for(int x = 0; x < len; x += 2)
+		//attack (lower volume)
+		if(RMS > threshold_amp)
 		{
-			*(window+x) *= 0.5;
-			*(window+x+1) *= 0.5;
+			int overamp = (RMS - threshold) / ratio;
+			int target_amp = threshold_amp + overamp;
+			int diff = RMS - target_amp;
+
+			//test values are correct by multiplying by 0.5
+			for(int x = 0; x < len; x += 2)
+			{
+				if(gain_adjust < 1)
+				{
+					gain_adjust += attack_step;
+				}
+
+				//calculate output gain adjustment
+				output_gain = (RMS - (diff * gain_adjust)) / RMS;
+
+				*(window+x) *= output_gain;
+				*(window+x+1) *= output_gain;
+			}
+		}
+
+		//release(raise volume back to normal)
+		else
+		{
+			for(int x = 0; x < len; x += 2)
+			{
+				double diff = 1 - output_gain;
+
+				if(gain_adjust > 0)
+				{
+					gain_adjust -= release_step;
+				}
+
+				double release_output = 1 - (diff * gain_adjust);
+				*(window+x) *= release_output;
+				*(window+x+1) *= release_output;
+			}
 		}
 	}
 }
