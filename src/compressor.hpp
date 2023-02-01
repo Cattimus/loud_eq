@@ -24,11 +24,11 @@ private:
 	//values user might want to modify
 	double threshold    = -18;
 	double normalize_db = -6;
-	double noise_floor  = -60;
+	double noise_floor  = -40;
 	double ratio      = 4;
 	int attack_time   = 20;
 	int release_time  = 500;
-	int sample_window = 50;
+	int sample_window = 10;
 
 	//helper functions
 	double db_to_amp(double db);

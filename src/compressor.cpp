@@ -7,7 +7,7 @@ double Compressor::db_to_amp(double db)
 
 double Compressor::amp_to_db(double amp)
 {
-	return 20 * log10(amp / sample_range);
+	return 20 * log10(amp / (double)sample_range);
 }
 
 Compressor::Compressor()
@@ -115,6 +115,7 @@ void Compressor::compress(Wav& wav)
 	double attack_step = 1 / (double)attack_samples;
 	double release_step = 1 / (double)release_samples;
 
+	//TODO - change to sliding scale RMS to see if it results in better compression
 	//iterate through whole file
 	for(int i = 0; i < wav.samples; i += samples_in_window)
 	{
@@ -141,12 +142,17 @@ void Compressor::compress(Wav& wav)
 		//attack (lower volume)
 		if(RMS > threshold_amp)
 		{
-			int overamp = (RMS - threshold) / ratio;
-			int target_amp = threshold_amp + overamp;
-			int diff = RMS - target_amp;
+			//amount (in decibels) we wish to be over the threshold
+			double overamp = (amp_to_db(RMS) - threshold) / ratio;
+
+			//target amplitude (converted back from db)
+			double target_amp = db_to_amp(threshold + overamp);
+
+			//difference in amplitude between our average and our target
+			double diff = RMS - target_amp;
 
 			//test values are correct by multiplying by 0.5
-			for(int x = 0; x < len; x += 2)
+			for(int x = 0; x < len; x++)
 			{
 				if(gain_adjust < 1)
 				{
@@ -157,14 +163,13 @@ void Compressor::compress(Wav& wav)
 				output_gain = (RMS - (diff * gain_adjust)) / RMS;
 
 				*(window+x) *= output_gain;
-				*(window+x+1) *= output_gain;
 			}
 		}
 
 		//release(raise volume back to normal)
 		else
 		{
-			for(int x = 0; x < len; x += 2)
+			for(int x = 0; x < len; x++)
 			{
 				double diff = 1 - output_gain;
 
@@ -175,7 +180,6 @@ void Compressor::compress(Wav& wav)
 
 				double release_output = 1 - (diff * gain_adjust);
 				*(window+x) *= release_output;
-				*(window+x+1) *= release_output;
 			}
 		}
 	}
