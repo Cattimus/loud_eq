@@ -17,7 +17,6 @@ Compressor::Compressor()
 	noise_floor_amp = db_to_amp(noise_floor);
 }
 
-
 //getters and setters
 void Compressor::set_threshold(double threshold)
 {
@@ -61,10 +60,6 @@ double Compressor::get_ratio()
 void Compressor::set_attack_time_ms(int attack)
 {
 	attack_time = attack;
-	if(this->sample_rate_sec > 0)
-	{
-		attack_time_samples = sample_rate_sec * double(attack_time / 1000);
-	}
 }
 int Compressor::get_attack_time_ms()
 {
@@ -74,10 +69,6 @@ int Compressor::get_attack_time_ms()
 void Compressor::set_release_time_ms(int release)
 {
 	release_time = release;
-	if(this->sample_rate_sec > 0)
-	{
-		release_time_samples = sample_rate_sec * double(release_time / 1000);
-	}
 }
 int Compressor::get_release_time_ms()
 {
@@ -87,12 +78,68 @@ int Compressor::get_release_time_ms()
 void Compressor::set_sample_window_ms(int window)
 {
 	sample_window = window;
-	if(this->sample_rate_sec > 0)
-	{
-		sample_window_samples = sample_rate_sec * double(sample_window / 1000);
-	}
 }
 int Compressor::get_sample_window_ms()
 {
 	return sample_window;
+}
+
+//calculate the root mean square value for a sample window
+double Compressor::get_RMS(int16_t* data, size_t len)
+{
+	double total = 0;
+
+	//calculate total square (of both channels)
+	for(int i = 0; i < len; i += 2)
+	{
+		double l = *(data+i);
+		double r = *(data+i+1);
+
+		total += (l * l + r * r);
+	}
+
+	//calculate root mean square
+	return sqrt(total / (double)len);
+}
+
+void Compressor::compress(Wav& wav)
+{
+	//initialize things that need data from the wav file
+	samples_per_sec = wav.samples_per_sec;
+
+	samples_in_window = samples_per_sec * (double)(sample_window / 1000.0);
+	attack_samples = samples_per_sec * (double)(attack_time / 1000.0);
+	release_samples = samples_per_sec * (double)(release_time / 1000.0);
+
+	//iterate through whole file
+	for(int i = 0; i < wav.samples; i += samples_in_window)
+	{
+		size_t len = samples_in_window;
+		int16_t* window = (int16_t*)wav.get_window(i, len);
+
+		//we have exceeded the bounds of the array
+		if(window == NULL)
+		{
+			//attempt to get the last (smaller) window
+			len = wav.samples - i;
+			window = (int16_t*)wav.get_window(i, len);
+
+			//window is not recoverable
+			if(window == NULL)
+			{
+				break;
+			}
+		}
+
+		//calculate RMS values
+		double RMS_amp = get_RMS(window, len);
+		double RMS_db = amp_to_db(RMS_amp);
+
+		//test values are correct by multiplying by 0.5
+		for(int x = 0; x < len; x += 2)
+		{
+			*(window+x) *= 0.5;
+			*(window+x+1) *= 0.5;
+		}
+	}
 }

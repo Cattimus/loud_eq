@@ -14,12 +14,12 @@ private:
 	double threshold_amp = 0;
 	double normalize_amp = 0;
 	double noise_floor_amp = 0;
-	int sample_window_samples = 0;
 
 	//values that are different for different audio streams
-	int attack_time_samples = 0;
-	int release_time_samples = 0;
-	int sample_rate_sec = 0;
+	int attack_samples = 0;
+	int release_samples = 0;
+	int samples_in_window = 0;
+	int samples_per_sec = 0;
 
 	//values user might want to modify
 	double threshold    = -18;
@@ -34,11 +34,14 @@ private:
 	double db_to_amp(double db);
 	double amp_to_db(double amp);
 
+	double get_RMS(int16_t* data, size_t len);
+
+
 public:
 	Compressor();
 
-
-	void compress(Wav audio);
+	//compress a wav file in-place
+	void compress(Wav& audio);
 
 	//getters and setters
 	void set_threshold(double threshold);
