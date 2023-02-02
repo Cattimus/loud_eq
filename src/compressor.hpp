@@ -27,7 +27,7 @@ private:
 	double noise_floor  = -40;
 	double ratio      = 4;
 	int attack_time   = 20;
-	int release_time  = 500;
+	int release_time  = 150;
 	int sample_window = 10;
 
 	//helper functions

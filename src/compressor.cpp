@@ -115,29 +115,26 @@ void Compressor::compress(Wav& wav)
 	double attack_step = 1 / (double)attack_samples;
 	double release_step = 1 / (double)release_samples;
 
-	//TODO - change to sliding scale RMS to see if it results in better compression
+	double total = 0;
+	int samples_in_total = 0;
+
 	//iterate through whole file
-	for(int i = 0; i < wav.samples; i += samples_in_window)
+	for(int i = 0; i < wav.samples; i++)
 	{
-		size_t len = samples_in_window;
-		int16_t* window = (int16_t*)wav.get_window(i, len);
+		int16_t* data = (int16_t*)((void*)wav.data);
 
-		//we have exceeded the bounds of the array
-		if(window == NULL)
+		total += pow(data[i], 2);
+		samples_in_total++;
+
+		//remove old sample from window if we go above the amount
+		if(samples_in_total > samples_in_window)
 		{
-			//attempt to get the last (smaller) window
-			len = wav.samples - i;
-			window = (int16_t*)wav.get_window(i, len);
-
-			//window is not recoverable
-			if(window == NULL)
-			{
-				break;
-			}
+			total -= pow(data[i - samples_in_window], 2);
+			samples_in_total--;
 		}
 
 		//calculate RMS values
-		double RMS = get_RMS(window, len);
+		double RMS = sqrt(total / (double)samples_in_total);
 
 		//attack (lower volume)
 		if(RMS > threshold_amp)
@@ -151,36 +148,29 @@ void Compressor::compress(Wav& wav)
 			//difference in amplitude between our average and our target
 			double diff = RMS - target_amp;
 
-			//test values are correct by multiplying by 0.5
-			for(int x = 0; x < len; x++)
+			if(gain_adjust < 1)
 			{
-				if(gain_adjust < 1)
-				{
-					gain_adjust += attack_step;
-				}
-
-				//calculate output gain adjustment
-				output_gain = (RMS - (diff * gain_adjust)) / RMS;
-
-				*(window+x) *= output_gain;
+				gain_adjust += attack_step;
 			}
+
+			//calculate output gain adjustment
+			output_gain = (RMS - (diff * gain_adjust)) / RMS;
+
+			data[i] *= output_gain;
 		}
 
 		//release(raise volume back to normal)
 		else
 		{
-			for(int x = 0; x < len; x++)
+			double diff = 1 - output_gain;
+
+			if(gain_adjust > 0)
 			{
-				double diff = 1 - output_gain;
-
-				if(gain_adjust > 0)
-				{
-					gain_adjust -= release_step;
-				}
-
-				double release_output = 1 - (diff * gain_adjust);
-				*(window+x) *= release_output;
+				gain_adjust -= release_step;
 			}
+
+			double release_output = 1 - (diff * gain_adjust);
+			data[i] *= release_output;
 		}
 	}
 }
