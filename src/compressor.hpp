@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <queue>
 #include <cmath>
 using namespace std;
 
@@ -10,25 +11,26 @@ class Compressor
 {
 private:
 	//values the user will never have to interact with
-	double sample_range = 32768;
-	double threshold_amp = 0;
-	double normalize_amp = 0;
+	double sample_range    = 32768;
+	double threshold_amp   = 0;
+	double normalize_amp   = 0;
 	double noise_floor_amp = 0;
 
 	//values that are different for different audio streams
-	int attack_samples = 0;
-	int release_samples = 0;
+	int attack_samples    = 0;
+	int release_samples   = 0;
 	int samples_in_window = 0;
-	int samples_per_sec = 0;
+	int samples_per_sec   = 0;
 
 	//values user might want to modify
-	double threshold    = -18;
-	double normalize_db = -6;
-	double noise_floor  = -40;
-	double ratio      = 4;
-	int attack_time   = 100;
-	int release_time  = 1000;
-	int sample_window = 10;
+	double threshold     = -18;
+	double normalize_db  = -6;
+	double noise_floor   = -40;
+	double ratio         = 4;
+
+	double attack_time   = 5;
+	double release_time  = 50;
+	double sample_window = 10;
 
 	//helper functions
 	double db_to_amp(double db);

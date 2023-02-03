@@ -2,12 +2,12 @@
 
 double Compressor::db_to_amp(double db)
 {
-	return pow(10, db / 20.0f) * sample_range;
+	return (pow(10, (db - 3.162) / 20.0f) * sample_range);
 }
 
 double Compressor::amp_to_db(double amp)
 {
-	return 20.0f * log10(amp / sample_range);
+	return 20.0f * log10(amp / sample_range) - 3.162;
 }
 
 Compressor::Compressor()
@@ -106,8 +106,7 @@ void Compressor::compress(Wav& wav)
 {
 	//initialize things that need data from the wav file
 	samples_per_sec = wav.samples_per_sec;
-	//samples_in_window = samples_per_sec * (double)(sample_window / 1000.0f);
-	samples_in_window = 512;
+	samples_in_window = samples_per_sec * (double)(sample_window / 1000.0f);
 	attack_samples = samples_per_sec * (double)(attack_time / 1000.0f);
 	release_samples = samples_per_sec * (double)(release_time / 1000.0f);
 
@@ -116,29 +115,28 @@ void Compressor::compress(Wav& wav)
 	double attack_step = 1 / (double)attack_samples;
 	double release_step = 1 / (double)release_samples;
 
-	uint64_t total = 0;
-	double samples_in_total = 0;
+	queue<int64_t> old_values;
+
+	int64_t total = 0;
 	int16_t* data = (int16_t*)((void*)wav.data);
 
 	//iterate through whole file
 	for(int i = 0; i < wav.samples; i++)
 	{
-		double cur = pow(data[i], 2);
+		int64_t cur = (int64_t)data[i] * (int64_t)data[i];
 		total += cur;
+		old_values.push(cur);
 
 		//remove old sample from window if we go above the amount
-		if(samples_in_total == samples_in_window)
+		if(old_values.size() == (samples_in_window + 1))
 		{
-			double prev = pow(data[i - samples_in_window], 2);
+			int64_t prev = old_values.front();
 			total -= prev;
-		}
-		else
-		{
-			samples_in_total++;
+			old_values.pop();
 		}
 
 		//calculate RMS values
-		double RMS = sqrt((double)total / samples_in_total);
+		double RMS = sqrt(total / old_values.size());
 
 		//attack (lower volume)
 		if(RMS > threshold_amp)
@@ -152,7 +150,7 @@ void Compressor::compress(Wav& wav)
 			//difference in amplitude between our average and our target
 			double diff = RMS - target_amp;
 
-			if(gain_adjust < 1)
+			if(gain_adjust <= 1)
 			{
 				gain_adjust += attack_step;
 			}
@@ -167,7 +165,7 @@ void Compressor::compress(Wav& wav)
 		{
 			double diff = 1 - output_gain;
 
-			if(gain_adjust > 0)
+			if(gain_adjust >= 0)
 			{
 				gain_adjust -= release_step;
 			}
