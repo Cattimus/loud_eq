@@ -10,7 +10,7 @@ class Compressor
 {
 private:
 	//values the user will never have to interact with
-	int sample_range = 32768;
+	double sample_range = 32768;
 	double threshold_amp = 0;
 	double normalize_amp = 0;
 	double noise_floor_amp = 0;
@@ -26,8 +26,8 @@ private:
 	double normalize_db = -6;
 	double noise_floor  = -40;
 	double ratio      = 4;
-	int attack_time   = 20;
-	int release_time  = 150;
+	int attack_time   = 100;
+	int release_time  = 1000;
 	int sample_window = 10;
 
 	//helper functions
@@ -35,7 +35,6 @@ private:
 	double amp_to_db(double amp);
 
 	double get_RMS(int16_t* data, size_t len);
-
 
 public:
 	Compressor();

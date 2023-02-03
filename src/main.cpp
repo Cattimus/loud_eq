@@ -17,7 +17,7 @@ int main()
 	Compressor comp;
 	comp.compress(wav);
 
-	wav.write("../output/test.wav");
+	wav.write("../output/peak_test.wav");
 
 	return 0;
 }
