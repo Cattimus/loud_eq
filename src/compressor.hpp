@@ -8,6 +8,7 @@ using namespace std;
 #include "wav.hpp"
 
 //TODO - add in an extra pass to get rid of peaks after compression
+//TODO - add in a pass that will normalize the audio to the targeted volume level
 
 class Compressor
 {
@@ -17,6 +18,7 @@ private:
 	double threshold_amp   = 0;
 	double normalize_amp   = 0;
 	double noise_floor_amp = 0;
+	double peak_threshold = 0.35;
 
 	//values that are different for different audio streams
 	int attack_samples    = 0;
@@ -38,13 +40,17 @@ private:
 	double db_to_amp(double db);
 	double amp_to_db(double amp);
 
-	double get_RMS(int16_t* data, size_t len);
-
 public:
 	Compressor();
 
 	//compress a wav file in-place
 	void compress(Wav& audio);
+
+	//normalize a wav file in-place
+	void normalize(Wav& audio);
+
+	//remove the peaks from a wav file in-place
+	void remove_peaks(Wav& audio);
 
 	//getters and setters
 	void set_threshold(double threshold);

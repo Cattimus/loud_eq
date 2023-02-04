@@ -84,24 +84,6 @@ int Compressor::get_sample_window_ms()
 	return sample_window;
 }
 
-//calculate the root mean square value for a sample window
-double Compressor::get_RMS(int16_t* data, size_t len)
-{
-	double total = 0;
-
-	//calculate total square (of both channels)
-	for(int i = 0; i < len; i += 2)
-	{
-		double l = *(data+i);
-		double r = *(data+i+1);
-
-		total += (l * l + r * r);
-	}
-
-	//calculate root mean square
-	return sqrt(total / (double)len);
-}
-
 void Compressor::compress(Wav& wav)
 {
 	//initialize things that need data from the wav file
@@ -117,20 +99,20 @@ void Compressor::compress(Wav& wav)
 
 	queue<int64_t> old_values;
 
-	int64_t total = 0;
+	uint64_t total = 0;
 	int16_t* data = (int16_t*)((void*)wav.data.data());
 
 	//iterate through whole file
 	for(int i = 0; i < wav.samples; i++)
 	{
-		int64_t cur = (int64_t)data[i] * (int64_t)data[i];
+		uint64_t cur = (int64_t)data[i] * (int64_t)data[i];
 		total += cur;
 		old_values.push(cur);
 
 		//remove old sample from window if we go above the amount
 		if(old_values.size() == (samples_in_window + 1))
 		{
-			int64_t prev = old_values.front();
+			uint64_t prev = old_values.front();
 			total -= prev;
 			old_values.pop();
 		}
@@ -174,4 +156,10 @@ void Compressor::compress(Wav& wav)
 			data[i] *= output_gain;
 		}
 	}
+}
+
+void Compressor::remove_peaks(Wav& wav)
+{
+	//get the average amplitude of the entire file
+	uint64_t total = 0;
 }
