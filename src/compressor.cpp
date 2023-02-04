@@ -118,7 +118,7 @@ void Compressor::compress(Wav& wav)
 	queue<int64_t> old_values;
 
 	int64_t total = 0;
-	int16_t* data = (int16_t*)((void*)wav.data);
+	int16_t* data = (int16_t*)((void*)wav.data.data());
 
 	//iterate through whole file
 	for(int i = 0; i < wav.samples; i++)

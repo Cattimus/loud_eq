@@ -1,25 +1,5 @@
 #include "wav.hpp"
 
-Wav::~Wav()
-{
-	if(data != NULL)
-	{
-		free(data);
-		data = NULL;
-	}
-}
-
-void* Wav::get_window(size_t offset, size_t size)
-{
-	//sample out of range
-	if((offset + size) >= samples)
-	{
-		return NULL;
-	}
-
-	return data + (offset * sample_size);
-}
-
 //copy constructor and assignment operator (needs deep copy)
 Wav::Wav(const Wav& wav)
 {
@@ -41,16 +21,9 @@ void Wav::operator=(const Wav& wav)
 	samples = wav.samples;
 	sample_size = wav.sample_size;
 
-	//free old memory, if it exists
-	if(data != NULL)
-	{
-		free(data);
-		data = NULL;
-	}
-
 	//deep copy data
-	data = (char*)calloc(samples * sample_size + 1, 1);
-	memcpy(data, wav.data, samples * sample_size);
+	data = vector<char>(samples * sample_size);
+	memcpy(data.data(), wav.data.data(), samples * sample_size);
 }
 
 static void exit_gracefully(FILE* to_close, const char* filename)
@@ -64,7 +37,6 @@ Wav::Wav(string filename)
 {
 	FILE* input = fopen(filename.c_str(), "rb");
 	char chunk_id[4];
-	data = NULL; //make sure to null data pointer so we don't run into issues
 
 	//chunk ID for the first chunk should be RIFF
 	fread(chunk_id, 4, 1, input);
@@ -123,8 +95,8 @@ Wav::Wav(string filename)
 
 	//read data from file
 	fread(&chunk_size, 4, 1, input);
-	data = (char*)calloc(chunk_size + 1, 1);
-	fread(data, 1, chunk_size, input);
+	data = vector<char>(chunk_size + 1);
+	fread(data.data(), 1, chunk_size, input);
 	fclose(input);
 
 	sample_size = (bits_per_sample / 8);
@@ -159,7 +131,7 @@ void Wav::write(string filename)
 	uint32_t chunk_size = sample_size * samples;
 	fwrite("data", 4, 1, output);
 	fwrite(&chunk_size, 4, 1, output);
-	fwrite(data, 1, chunk_size, output);
+	fwrite(data.data(), 1, chunk_size, output);
 
 	//check if we need a padding byte
 	if(chunk_size % 2 != 0)

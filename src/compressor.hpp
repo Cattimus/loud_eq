@@ -7,6 +7,8 @@ using namespace std;
 
 #include "wav.hpp"
 
+//TODO - add in an extra pass to get rid of peaks after compression
+
 class Compressor
 {
 private:
@@ -25,7 +27,7 @@ private:
 	//values user might want to modify
 	double threshold     = -18;
 	double normalize_db  = -6;
-	double noise_floor   = -40;
+	double noise_floor   = -60;
 	double ratio         = 4;
 
 	double attack_time   = 5;

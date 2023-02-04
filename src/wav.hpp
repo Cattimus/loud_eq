@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 using namespace std;
 
 //only 16-bit PCM wav files will be supported. Extension types are not supported.
@@ -21,7 +22,7 @@ public:
 	uint32_t samples_per_sec;
 	uint16_t block_align;
 	uint16_t bits_per_sample;
-	char* data;
+	vector<char>data;
 
 	int samples; //total number of samples in file
 	int sample_size;
@@ -29,11 +30,6 @@ public:
 	Wav(string filename);
 	Wav(const Wav& wav); //copy constructor
 	void operator=(const Wav& wav);
-	~Wav();
 
 	void write(string filename);
-
-	//get a window of [size] at [offset]
-	//both measurements are in samples not in bytes
-	void* get_window(size_t offset, size_t size);
 };
