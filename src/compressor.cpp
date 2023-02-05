@@ -21,7 +21,7 @@ double Compressor::amp_to_db_objective(double amp)
 Compressor::Compressor()
 {
 	threshold_amp = db_to_amp(threshold);
-	normalize_amp = db_to_amp(normalize_db);
+	normalize_amp = db_to_amp_objective(normalize_db);
 	noise_floor_amp = db_to_amp(noise_floor);
 }
 
@@ -185,43 +185,17 @@ void Compressor::normalize(Wav& wav)
 			len = wav.samples - i;
 		}
 
-		int current_peak = 0;
-		bool peak_changed = false;
 		for(int x = i; x < i+len; x++)
 		{
 			int cur = abs(data[x]);
 			if(cur > peak)
 			{
 				peak = cur;
-				peak_changed = true;
 			}
-
-			if(cur > current_peak)
-			{
-				current_peak = cur;
-			}
-		}
-
-		//gradually lower peak if the volume has not been exceeded
-		if(!peak_changed)
-		{
-			//lower volume by a maximum of 5%
-			if(current_peak / peak < 0.95)
-			{
-				peak *= 0.95;
-			}
-
-			//set volume to the desired peak (under 5% change)
-			else
-			{
-				peak = current_peak;
-			}
-
-			peak_changed = false;
 		}
 
 		//calculate the amount of gain to add or subtract
-		double gain = db_to_amp_objective(normalize_db) / peak;
+		double gain = normalize_amp / peak;
 
 		for(int x = i; x < i+len; x++)
 		{

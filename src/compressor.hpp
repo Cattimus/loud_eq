@@ -7,7 +7,7 @@ using namespace std;
 
 #include "wav.hpp"
 
-//TODO - add in an extra pass to get rid of peaks after compression
+//TODO - peaks must be removed somehow prior to normalization. either in the compressor or in a separate function
 //TODO - add in functions for streaming compress
 
 class Compressor
