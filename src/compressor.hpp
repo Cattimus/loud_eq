@@ -27,7 +27,7 @@ private:
 
 	//values user might want to modify
 	double threshold     = -18;
-	double normalize_db  = 0;
+	double normalize_db  = -3;
 	double noise_floor   = -60;
 	double ratio         = 4;
 
