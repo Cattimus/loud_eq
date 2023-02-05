@@ -37,9 +37,7 @@ private:
 
 	//helper functions
 	double db_to_amp(double db);
-	double db_to_amp_objective(double db);
 	double amp_to_db(double amp);
-	double amp_to_db_objective(double db);
 
 public:
 	Compressor();

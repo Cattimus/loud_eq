@@ -2,27 +2,19 @@
 
 double Compressor::db_to_amp(double db)
 {
-	return (pow(10, (db - 3.162) / 20.0f) * sample_range);
-}
-double Compressor::db_to_amp_objective(double db)
-{
 	return (pow(10, db / 20.0f) * sample_range);
 }
 
 double Compressor::amp_to_db(double amp)
-{
-	return 20.0f * log10(amp / sample_range) - 3.162;
-}
-double Compressor::amp_to_db_objective(double amp)
 {
 	return 20.0f * log10(amp / sample_range);
 }
 
 Compressor::Compressor()
 {
-	threshold_amp = db_to_amp(threshold);
-	normalize_amp = db_to_amp_objective(normalize_db);
-	noise_floor_amp = db_to_amp(noise_floor);
+	threshold_amp = db_to_amp(threshold - 3.162); //these values are being adjusted for compression purposes
+	normalize_amp = db_to_amp(normalize_db);
+	noise_floor_amp = db_to_amp(noise_floor - 3.162);
 }
 
 //getters and setters
@@ -39,7 +31,7 @@ double Compressor::get_threshold()
 void Compressor::set_normalize(double normalize)
 {
 	this->normalize_db = normalize;
-	normalize_amp = db_to_amp_objective(normalize_db);
+	normalize_amp = db_to_amp(normalize_db);
 }
 double Compressor::get_normalize()
 {
@@ -105,6 +97,8 @@ void Compressor::compress(Wav& wav)
 	double attack_step = 1 / (double)attack_samples;
 	double release_step = 1 / (double)release_samples;
 
+	//this queue holds original values
+	//since we are modifying in-place, we need a copy of them
 	queue<int64_t> old_values;
 
 	uint64_t total = 0;
@@ -117,7 +111,7 @@ void Compressor::compress(Wav& wav)
 		total += cur;
 		old_values.push(cur);
 
-		//remove old sample from window if we go above the amount
+		//remove old sample from window if we go above the window size
 		if(old_values.size() == (samples_in_window + 1))
 		{
 			uint64_t prev = old_values.front();
@@ -125,17 +119,17 @@ void Compressor::compress(Wav& wav)
 			old_values.pop();
 		}
 
-		//calculate RMS values
+		//calculate RMS values (rolling)
 		double RMS = sqrt(total / old_values.size());
 
 		//attack (lower volume)
 		if(RMS > threshold_amp)
 		{
 			//amount (in decibels) we wish to be over the threshold
-			double overamp = (amp_to_db(RMS) - threshold) / ratio;
+			double overamp = ((amp_to_db(RMS) - 3.162) - threshold) / ratio;
 
 			//target amplitude (converted back from db)
-			double target_amp = db_to_amp(threshold + overamp);
+			double target_amp = db_to_amp(threshold + overamp - 3.162);
 
 			//difference in amplitude between our average and our target
 			double diff = RMS - target_amp;
@@ -173,18 +167,22 @@ void Compressor::remove_peaks(Wav& wav)
 
 void Compressor::normalize(Wav& wav)
 {
+	//the sample size has been set to 50ms to simulate what it would be like in a real streaming setup
 	int sample_size = (50 / (double)1000) * wav.samples_per_sec;
 	int16_t* data = (int16_t*)(void*)wav.data.data();
 
+	//peak value is over the entire file
 	int peak = 0;
 	for(int i = 0; i < wav.samples; i += sample_size)
 	{
+		//length is the sample size unless there are not enough samples remaining
 		int len = sample_size;
 		if(wav.samples - i < sample_size)
 		{
 			len = wav.samples - i;
 		}
 
+		//check for any value that exceeds the peak
 		for(int x = i; x < i+len; x++)
 		{
 			int cur = abs(data[x]);
@@ -197,6 +195,7 @@ void Compressor::normalize(Wav& wav)
 		//calculate the amount of gain to add or subtract
 		double gain = normalize_amp / peak;
 
+		//apply gain to entire window
 		for(int x = i; x < i+len; x++)
 		{
 			data[x] *= gain;
