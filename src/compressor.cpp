@@ -4,10 +4,18 @@ double Compressor::db_to_amp(double db)
 {
 	return (pow(10, (db - 3.162) / 20.0f) * sample_range);
 }
+double Compressor::db_to_amp_objective(double db)
+{
+	return (pow(10, db / 20.0f) * sample_range);
+}
 
 double Compressor::amp_to_db(double amp)
 {
 	return 20.0f * log10(amp / sample_range) - 3.162;
+}
+double Compressor::amp_to_db_objective(double amp)
+{
+	return 20.0f * log10(amp / sample_range);
 }
 
 Compressor::Compressor()
@@ -31,7 +39,7 @@ double Compressor::get_threshold()
 void Compressor::set_normalize(double normalize)
 {
 	this->normalize_db = normalize;
-	normalize_amp = db_to_amp(normalize_db);
+	normalize_amp = db_to_amp_objective(normalize_db);
 }
 double Compressor::get_normalize()
 {
@@ -105,7 +113,7 @@ void Compressor::compress(Wav& wav)
 	//iterate through whole file
 	for(int i = 0; i < wav.samples; i++)
 	{
-		uint64_t cur = (int64_t)data[i] * (int64_t)data[i];
+		uint64_t cur = pow(data[i], 2);
 		total += cur;
 		old_values.push(cur);
 
@@ -160,6 +168,38 @@ void Compressor::compress(Wav& wav)
 
 void Compressor::remove_peaks(Wav& wav)
 {
-	//get the average amplitude of the entire file
-	uint64_t total = 0;
+	
+}
+
+void Compressor::normalize(Wav& wav)
+{
+	int sample_size = (50 / (double)1000) * wav.samples_per_sec;
+	int16_t* data = (int16_t*)(void*)wav.data.data();
+
+	int peak = 0;
+	for(int i = 0; i < wav.samples; i += sample_size)
+	{
+		int len = sample_size;
+		if(wav.samples - i < sample_size)
+		{
+			len = wav.samples - i;
+		}
+
+		for(int x = i; x < i+len; x++)
+		{
+			if(abs(data[x]) > peak)
+			{
+				peak = abs(data[x]);
+			}
+		}
+
+		//calculate the amount of gain to add or subtract
+		double gain = db_to_amp_objective(normalize_db) / peak;
+
+		for(int x = i; x < i+len; x++)
+		{
+			data[x] *= gain;
+		}
+	}
+
 }

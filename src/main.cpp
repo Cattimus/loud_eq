@@ -16,6 +16,7 @@ int main()
 
 	Compressor comp;
 	comp.compress(wav);
+	comp.normalize(wav);
 
 	wav.write("../output/peak_test.wav");
 

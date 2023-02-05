@@ -8,7 +8,7 @@ using namespace std;
 #include "wav.hpp"
 
 //TODO - add in an extra pass to get rid of peaks after compression
-//TODO - add in a pass that will normalize the audio to the targeted volume level
+//TODO - add in functions for streaming compress
 
 class Compressor
 {
@@ -18,7 +18,6 @@ private:
 	double threshold_amp   = 0;
 	double normalize_amp   = 0;
 	double noise_floor_amp = 0;
-	double peak_threshold = 0.35;
 
 	//values that are different for different audio streams
 	int attack_samples    = 0;
@@ -28,17 +27,19 @@ private:
 
 	//values user might want to modify
 	double threshold     = -18;
-	double normalize_db  = -6;
+	double normalize_db  = 0;
 	double noise_floor   = -60;
 	double ratio         = 4;
 
-	double attack_time   = 5;
-	double release_time  = 50;
+	double attack_time   = 10;
+	double release_time  = 100;
 	double sample_window = 10;
 
 	//helper functions
 	double db_to_amp(double db);
+	double db_to_amp_objective(double db);
 	double amp_to_db(double amp);
+	double amp_to_db_objective(double db);
 
 public:
 	Compressor();
