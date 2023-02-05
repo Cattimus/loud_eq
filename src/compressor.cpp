@@ -84,7 +84,7 @@ int Compressor::get_sample_window_ms()
 	return sample_window;
 }
 
-void Compressor::compress(Wav& wav)
+void Compressor::compress_RMS(Wav& wav)
 {
 	//initialize things that need data from the wav file
 	samples_per_sec = wav.samples_per_sec;
@@ -160,9 +160,85 @@ void Compressor::compress(Wav& wav)
 	}
 }
 
-void Compressor::remove_peaks(Wav& wav)
+void Compressor::compress(Wav& wav)
 {
+	//initialize things that need data from the wav file
+	samples_per_sec = wav.samples_per_sec;
+	samples_in_window = samples_per_sec * (double)(sample_window / 1000.0f);
+	attack_samples = samples_per_sec * (double)(attack_time / 1000.0f);
+	release_samples = samples_per_sec * (double)(release_time / 1000.0f);
 
+	double gain_adjust = 0;
+	double output_gain = 0;
+	double attack_step = 1 / (double)attack_samples;
+	double release_step = 1 / (double)release_samples;
+
+	int16_t* data = (int16_t*)((void*)wav.data.data());
+
+	//iterate through whole file
+	for(int i = 0; i < wav.samples; i += samples_in_window)
+	{	
+		//make sure we don't exceed the bounds of the array
+		int len = samples_in_window;
+		if(wav.samples - i < samples_in_window)
+		{
+			len = wav.samples - i;
+		}
+
+		int peak = 0;
+		for(int x = i; x < i + len; x++)
+		{
+			int cur = abs(data[x]);
+			if(cur > peak)
+			{
+				peak = cur;
+			}
+		}
+
+
+		//attack (lower volume)
+		if(peak > threshold_amp)
+		{
+			//amount (in decibels) we wish to be over the threshold
+			double overamp = ((amp_to_db(peak) - 3.162) - threshold) / ratio;
+
+			//target amplitude (converted back from db)
+			double target_amp = db_to_amp(threshold + overamp - 3.162);
+
+			//difference in amplitude between our average and our target
+			double diff = peak - target_amp;
+
+			for(int x = i; x < i + len; x++)
+			{
+				if(gain_adjust <= 1)
+				{
+					gain_adjust += attack_step;
+				}
+
+				//calculate output gain adjustment
+				output_gain = (peak - (diff * gain_adjust)) / (double)peak;
+				data[x] *= output_gain;
+			}
+		}
+
+		//release(raise volume back to normal)
+		else
+		{
+			double diff = 1 - output_gain;
+
+			for(int x = i; x < i + len; x++)
+			{
+				if(gain_adjust >= 0)
+				{
+					gain_adjust -= release_step;
+				}
+
+				output_gain = 1 - (diff * gain_adjust);
+				data[x] *= output_gain;
+			}
+
+		}
+	}
 }
 
 void Compressor::normalize(Wav& wav)

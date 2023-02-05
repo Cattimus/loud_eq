@@ -27,13 +27,13 @@ private:
 
 	//values user might want to modify
 	double threshold     = -18;
-	double normalize_db  = -3;
+	double normalize_db  = -1;
 	double noise_floor   = -60;
 	double ratio         = 4;
 
 	double attack_time   = 10;
 	double release_time  = 100;
-	double sample_window = 10;
+	double sample_window = 50;
 
 	//helper functions
 	double db_to_amp(double db);
@@ -43,7 +43,10 @@ public:
 	Compressor();
 
 	//compress a wav file in-place
-	void compress(Wav& audio);
+	void compress_RMS(Wav& audio);
+
+	//compress a wav file based on peaks
+	void compress(Wav& wav);
 
 	//normalize a wav file in-place
 	void normalize(Wav& audio);
