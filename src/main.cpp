@@ -7,7 +7,7 @@ using namespace std;
 int main()
 {
 	//test normal constructor of wav
-	Wav wav("../media/peak_test.wav");
+	Wav wav("../media/test.wav");
 	cout << wav.format_code << endl;
 	cout << wav.channels << endl;
 	cout << wav.samples_per_sec << endl;
@@ -18,7 +18,7 @@ int main()
 	comp.compress(wav);
 	comp.normalize(wav);
 
-	wav.write("../output/peak_test.wav");
+	wav.write("../output/test.wav");
 
 	return 0;
 }
